@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cows and Bulls</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #fdf4e3;
+            color: #5b4636;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        h1 {
+            color: #6a4e3a;
+        }
+
+        form {
+            margin: 20px 0;
+        }
+
+        #guessInput {
+            padding: 10px;
+            font-size: 16px;
+            border: 2px solid #a67c52;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+
+        button {
+            padding: 10px 15px;
+            font-size: 16px;
+            background-color: #a67c52;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #7b5e3a;
+        }
+
+        #result {
+            margin: 15px 0;
+            font-weight: bold;
+        }
+
+        #historyList {
+            list-style-type: none;
+            padding: 0;
+            margin: 10px 0;
+        }
+
+        #historyList li {
+            background-color: #fde9d2;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            border: 1px solid #a67c52;
+        }
+
+        #attemptsLeft {
+            font-weight: bold;
+        }
+
+        #newGameButton {
+            margin-top: 20px;
+            background-color: #6a4e3a;
+        }
+
+        #newGameButton:hover {
+            background-color: #5b4636;
+        }
+    </style>
+</head>
+<body>
+    <h1>Cows and Bulls Game</h1>
+    <p>Guess the 4-digit number with unique digits.</p>
+    <form id="guessForm">
+        <input type="text" id="guessInput" maxlength="4" placeholder="Enter your guess" required>
+        <button type="submit">Check Guess</button>
+    </form>
+    <p id="result"></p>
+    <h2>Attempts Left: <span id="attemptsLeft">10</span></h2>
+    <h2>History</h2>
+    <ul id="historyList"></ul>
+    <button id="newGameButton">Start New Game</button>
+
+    <script>
+        $(document).ready(function() {
+            // Handle guess submission
+            $('#guessForm').submit(function(event) {
+                event.preventDefault();
+                const guess = $('#guessInput').val();
+                $.post('/check_guess/', { guess: guess, csrfmiddlewaretoken: '{{ csrf_token }}' })
+                    .done(function(data) {
+                        $('#result').text(data.message);
+                        $('#attemptsLeft').text(data.attemptsLeft);
+                        $('#historyList').empty();
+                        data.history.forEach(item => {
+                            $('#historyList').append(`<li>${item.guess} - ${item.result}</li>`);
+                        });
+                        if (data.message.includes("Game Over") || data.message.includes("guessed")) {
+                            $('#guessInput').prop('disabled', true);
+                        }
+                    })
+                    .fail(function(xhr) {
+                        alert(xhr.responseJSON.error);
+                    });
+            });
+    
+            // Handle new game button
+            $('#newGameButton').click(function() {
+                $.get('/new_game/', function(data) {
+                    // Reset the input field, history, and result
+                    $('#guessInput').val('');
+                    $('#result').text('');
+                    $('#historyList').empty();
+                    $('#attemptsLeft').text(data.attemptsLeft); // Reset attempts left
+                    $('#guessInput').prop('disabled', false); // Re-enable input if disabled
+
+                    alert(data.message);
+                });
+            });
+    
+            // Initial fetch for placeholder
+          // $.get('/new_game/', function(data) {
+            //    // Set the placeholder to the secret code
+             //   $('#guessInput').attr('placeholder', `Secret: ${data.secretCode}`);
+            //});
+        });
+    </script>
+    
+</body>
+</html>
